@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>苏摩图鉴 · 配方与基因</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ========== 顶部标题区 ========== -->
+<header class="hero">
+  <div class="hero__inner">
+    <div class="hero__brand">
+      <span class="hero__logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="40" height="40">
+          <path d="M24 5c9 0 16 6.6 16 15.5C40 32 32.8 43 24 43S8 32 8 20.5C8 11.6 15 5 24 5z"
+                fill="#ffd0dd" stroke="#ff7ba3" stroke-width="2.4"/>
+          <circle cx="18" cy="21" r="2.6" fill="#ff7ba3"/>
+          <circle cx="30" cy="21" r="2.6" fill="#ff7ba3"/>
+          <path d="M20 29c1.4 1.6 6.6 1.6 8 0" fill="none" stroke="#ff7ba3" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <div>
+        <h1 class="hero__title">苏摩图鉴</h1>
+        <p class="hero__sub" id="heroSub">配方 · 基因 · 对话 一站式速查</p>
+      </div>
+    </div>
+    <ul class="hero__stats" id="heroStats"></ul>
+  </div>
+</header>
+
+<!-- ========== 标签栏 ========== -->
+<nav class="tabs" role="tablist">
+  <div class="tabs__inner" id="tabs">
+    <button class="tab is-active" data-tab="sumo" role="tab">苏摩配方</button>
+    <button class="tab" data-tab="gene" role="tab">基因索引</button>
+    <button class="tab" data-tab="soul" role="tab">魂印图鉴</button>
+    <button class="tab" data-tab="ability" role="tab">能力图鉴</button>
+    <button class="tab" data-tab="personality" role="tab">性格图鉴</button>
+    <button class="tab" data-tab="status" role="tab">状态效果</button>
+    <button class="tab" data-tab="attr" role="tab">基础属性</button>
+    <button class="tab" data-tab="talk" role="tab">对话图鉴</button>
+      <button class="tab" data-tab="diy" role="tab">DIY 苏摩</button>
+  </div>
+</nav>
+
+<!-- ========== 基因序列手动设置 ========== -->
+<div class="seqedit__wrap" id="seqEditorBox" hidden></div>
+
+<input type="file" id="seqImportFile" accept=".json,application/json" hidden>
+<input type="file" id="diyImportFile" accept=".json,application/json" hidden>
+
+<main class="wrap">
+
+  <!-- ========== 面板：苏摩配方 ========== -->
+  <section class="panel is-active" id="panel-sumo">
+    <div class="toolbar">
+      <label class="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="search" placeholder="搜索苏摩 / 道具 / 基因 / 精灵ID（快捷键 /）" autocomplete="off">
+      </label>
+
+      <div class="toolbar__right">
+        <!-- 布局切换 -->
+        <div class="seg" id="layoutSeg" role="group" aria-label="布局切换">
+          <button type="button" class="seg__btn is-on" data-layout="grid" title="网格布局">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="0" width="7" height="7" rx="2"/><rect x="9" y="0" width="7" height="7" rx="2"/><rect x="0" y="9" width="7" height="7" rx="2"/><rect x="9" y="9" width="7" height="7" rx="2"/></g></svg>
+            网格
+          </button>
+          <button type="button" class="seg__btn" data-layout="list" title="列表布局">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><g fill="currentColor"><rect x="0" y="1" width="16" height="3" rx="1.5"/><rect x="0" y="6.5" width="16" height="3" rx="1.5"/><rect x="0" y="12" width="16" height="3" rx="1.5"/></g></svg>
+            列表
+          </button>
+        </div>
+
+        <!-- 显示内容：基因 / 喂食 -->
+        <div class="seg" id="modeSeg" role="group" aria-label="显示内容切换">
+          <button type="button" class="seg__btn is-on" data-mode="gene">基因显示</button>
+          <button type="button" class="seg__btn" data-mode="feed">喂食显示</button>
+        </div>
+
+        <label class="field">
+          <span>排序</span>
+          <select id="sort">
+            <option value="id">图鉴编号</option>
+            <option value="petId">精灵ID</option>
+            <option value="name">名称</option>
+          </select>
+        </label>
+
+        <label class="switch">
+          <input type="checkbox" id="desc">
+          <span>倒序</span>
+        </label>
+
+        <label class="switch">
+          <input type="checkbox" id="onlyTalk">
+          <span>只看专属对话</span>
+        </label>
+
+        <button class="btn btn--ghost" id="resetFilter" type="button">重置筛选</button>
+
+        <div class="dropdown" id="exportWrap">
+          <button class="btn btn--ghost" id="exportBtn" type="button" aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" id="exportMenu" hidden>
+            <button type="button" data-export="png">导出截图（PNG）</button>
+            <button type="button" data-export="csv">导出表格（CSV）</button>
+            <button type="button" data-seq="export">导出自定义配方（JSON）</button>
+            <button type="button" data-seq="import">导入手动序列（JSON）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 基因筛选：可折叠，默认收起 -->
+    <section class="fold" id="filterFold">
+      <button class="fold__head" type="button" aria-expanded="false">
+        <span class="fold__title">基因筛选</span>
+        <span class="fold__meta" id="filterMeta">未筛选</span>
+        <span class="fold__chev" aria-hidden="true"></span>
+      </button>
+      <div class="fold__body">
+        <div class="chips chips__row" id="seasonFilter"></div>
+        <div class="chips" id="geneFilter"></div>
+      </div>
+    </section>
+
+    <p class="result-line" id="resultLine"></p>
+    <div class="cards" id="cards"></div>
+    <div class="rows" id="rows" hidden></div>
+    <p class="empty" id="empty" hidden>没有符合条件的苏摩，换个关键词试试～</p>
+  </section>
+
+  <!-- ========== 面板：基因索引（行状折叠） ========== -->
+  <section class="panel" id="panel-gene">
+    <p class="panel__lead">13 种基因各对应一种道具；「宝宝基因」对应宝宝奶昔（旧称的原始 / 突变基因都算宝宝基因）。点每一行展开可查看用到该基因的苏摩。</p>
+    <div class="acc" id="genes"></div>
+  </section>
+
+  <!-- ========== 面板：魂印图鉴 ========== -->
+  <section class="panel" id="panel-soul">
+    <div class="panel__head">
+      <p class="panel__lead">魂印是苏摩的攻击方式。每只苏摩都有「基础魂印」和更强的「完美魂印」——基因序列完美匹配时进化出来的苏摩，用的就是完美魂印。<b>点任意一行看完整效果。</b></p>
+      <div class="panel__tools">
+        <div class="dropdown">
+          <button class="btn btn--ghost" type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" hidden>
+            <button type="button" data-panel-export="soul" data-fmt="png">导出图片（PNG）</button>
+            <button type="button" data-panel-export="soul" data-fmt="csv">导出表格（CSV）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc" id="souls"></div>
+  </section>
+
+  <!-- ========== 面板：能力图鉴 ========== -->
+  <section class="panel" id="panel-ability">
+    <div class="chips chips__row" id="abilityFilter"></div>
+    <div class="panel__head">
+      <p class="panel__lead">能力特性是进化时有机会额外获得的词条，一只苏摩最多带 4 条；稀有度从 ★ 到 ★★★ 越高越强。<b>点任意一行看完整效果。</b></p>
+      <div class="panel__tools">
+        <div class="dropdown">
+          <button class="btn btn--ghost" type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" hidden>
+            <button type="button" data-panel-export="ability" data-fmt="png">导出图片（PNG）</button>
+            <button type="button" data-panel-export="ability" data-fmt="csv">导出表格（CSV）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc" id="abilities"></div>
+  </section>
+
+  <!-- ========== 面板：性格图鉴 ========== -->
+  <section class="panel" id="panel-personality">
+    <div class="panel__head">
+      <p class="panel__lead">表格里 5 个数字分别代表<b>攻击、防御、生命、暴击、速度</b>的强弱选择：<b style="color:#d1477a">红色 ↑</b> 越大越强，<b style="color:#3f9e6a">绿色 ↓</b> 越大越弱，“—” 为平均。<b>点任意一行看详情。</b></p>
+      <div class="panel__tools">
+        <div class="dropdown">
+          <button class="btn btn--ghost" type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" hidden>
+            <button type="button" data-panel-export="personality" data-fmt="png">导出图片（PNG）</button>
+            <button type="button" data-panel-export="personality" data-fmt="csv">导出表格（CSV）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc" id="personalities"></div>
+  </section>
+
+  <!-- ========== 面板：状态效果 ========== -->
+  <section class="panel" id="panel-status">
+    <div class="panel__head">
+      <p class="panel__lead">状态效果由魂印和能力特性施加：「结算规则」说明重复触发时怎么处理，「最大层数」说明最多能叠几层。<b>点任意一行看完整说明。</b></p>
+      <div class="panel__tools">
+        <div class="dropdown">
+          <button class="btn btn--ghost" type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" hidden>
+            <button type="button" data-panel-export="status" data-fmt="png">导出图片（PNG）</button>
+            <button type="button" data-panel-export="status" data-fmt="csv">导出表格（CSV）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc" id="statuses"></div>
+  </section>
+
+  <!-- ========== 面板：基础属性成长 ========== -->
+  <section class="panel" id="panel-attr">
+    <div class="panel__head">
+      <p class="panel__lead">苏摩 1~21 级的基础数值。性格决定的 5 项强弱，就是在这里取对应等级的数值；带 <b>%</b> 的列是百分比属性。<b>点任意一行看详情。</b></p>
+      <div class="panel__tools">
+        <div class="dropdown">
+          <button class="btn btn--ghost" type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" hidden>
+            <button type="button" data-panel-export="attr" data-fmt="png">导出图片（PNG）</button>
+            <button type="button" data-panel-export="attr" data-fmt="csv">导出表格（CSV）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tablewrap" id="attrs"></div>
+  </section>
+
+
+  <!-- ========== 面板：DIY 苏摩 ========== -->
+  <section class="panel" id="panel-diy">
+    <div class="panel__head">
+      <p class="panel__lead">左边挑外观部件，拼出一只专属苏摩；右边给它配魂印、性格和能力特性（能力最多 4 条，可以留空）。<b>改哪项都即时生效。</b></p>
+      <div class="panel__tools">
+        <div class="dropdown">
+          <button class="btn btn--ghost" type="button" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            导出
+            <span class="dropdown__caret" aria-hidden="true"></span>
+          </button>
+          <div class="dropdown__menu" hidden>
+            <button type="button" data-diy-export="png">导出截图（PNG）</button>
+            <button type="button" data-diy-export="webm">导出动作（WebM · 高清）</button>
+            <button type="button" data-diy-export="apng">导出动作（透明 · APNG）</button>
+            <button type="button" data-diy-export="json">导出配置（JSON）</button>
+            <button type="button" data-diy-export="import">导入配置（JSON）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diy">
+      <div class="diy__left">
+        <div class="diy__stage">
+          <canvas id="diyCanvas"></canvas>
+          <span class="diy__empty" id="diyEmpty">还没选部件</span>
+        </div>
+        <div class="diy__acts">
+          <label class="diy__field">
+            <span>动作</span>
+            <select id="diyAnim"></select>
+          </label>
+          <button class="btn btn--ghost diy__btn" type="button" id="diyRandom">随机一只</button>
+          <button class="btn btn--ghost diy__btn" type="button" id="diyFullRandom">完全随机</button>
+          <button class="btn btn--ghost diy__btn" type="button" id="diyClear">清空外观</button>
+        </div>
+        <div class="diy__search">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14 14"/></svg>
+          <input id="diyPartSearch" type="search" placeholder="搜索苏摩名，筛选下方部件选项" autocomplete="off">
+        </div>
+        <div class="diy__parts" id="diyParts"></div>
+      </div>
+
+      <div class="diy__right">
+        <div class="diy__row">
+          <span class="diy__label">魂印</span>
+          <select id="diySoul"></select>
+        </div>
+        <div class="diy__row">
+          <span class="diy__label">性格</span>
+          <select id="diyPersonality"></select>
+        </div>
+        <div class="diy__row diy__row--top">
+          <span class="diy__label">能力特性<small>最多 4 条，可留空</small></span>
+          <div class="diy__search diy__search--ab">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14 14"/></svg>
+            <input id="diyAbilitySearch" type="search" placeholder="搜索能力特性，筛选下方下拉" autocomplete="off">
+          </div>
+          <div class="diy__abilities" id="diyAbilities"></div>
+        </div>
+        <div class="diy__result" id="diyResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 面板：对话图鉴（行状折叠） ========== -->
+  <section class="panel" id="panel-talk">
+    <div class="toolbar toolbar--slim">
+      <label class="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="talkSearch" placeholder="搜索台词 / 苏摩名" autocomplete="off">
+      </label>
+      <div class="toolbar__right">
+        <label class="switch">
+          <input type="checkbox" id="talkCompress" checked>
+          <span>压缩重复台词</span>
+        </label>
+        <button class="btn btn--ghost" id="talkExpand" type="button">全部展开</button>
+      </div>
+    </div>
+    <p class="result-line" id="talkLine"></p>
+    <div class="acc" id="talks"></div>
+  </section>
+
+</main>
+
+<!-- ========== 悬浮信息窗（魂印 / 能力 / 状态 详情） ========== -->
+<div class="infopop" id="infoPop" hidden>
+  <div class="infopop__mask" data-close></div>
+  <div class="infopop__box" role="dialog" aria-modal="true" aria-labelledby="infoPopTitle">
+    <button class="infopop__x" type="button" data-close aria-label="关闭">×</button>
+    <h3 class="infopop__title" id="infoPopTitle"></h3>
+    <div class="infopop__body" id="infoPopBody"></div>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="wrap foot__inner">
+    <p id="footMeta"></p>
+  </div>
+</footer>
+
+<!-- ========== 详情弹窗 ========== -->
+<div class="modal" id="modal" hidden>
+  <div class="modal__mask" data-close></div>
+  <div class="modal__box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal__close" type="button" data-close aria-label="关闭">×</button>
+    <div class="modal__body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="data/data.js"></script>
+
+<script src="js/spine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
